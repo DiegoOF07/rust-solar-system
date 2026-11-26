@@ -2,8 +2,7 @@
 // OBJ file loader for 3D models
 
 use crate::vertex::Vertex;
-use raylib::math::{Vector2, Vector3};
-use tobj;
+use raylib::math::Vector3;
 
 /// Represents a loaded 3D model from an OBJ file
 pub struct Obj {
@@ -13,10 +12,10 @@ pub struct Obj {
 
 impl Obj {
     /// Loads a 3D model from an OBJ file
-    /// 
+    ///
     /// # Arguments
     /// * `path` - Path to the .obj file
-    /// 
+    ///
     /// # Returns
     /// Result containing the loaded Obj or a LoadError
     pub fn load(path: &str) -> Result<Self, tobj::LoadError> {
@@ -35,7 +34,7 @@ impl Obj {
                 let position = Vector3::new(
                     mesh.positions[i * 3],
                     -mesh.positions[i * 3 + 1],
-                    mesh.positions[i * 3 + 2]
+                    mesh.positions[i * 3 + 2],
                 );
 
                 // Extract normal if available
@@ -43,25 +42,17 @@ impl Obj {
                     Vector3::new(
                         mesh.normals[i * 3],
                         mesh.normals[i * 3 + 1],
-                        mesh.normals[i * 3 + 2]
+                        mesh.normals[i * 3 + 2],
                     )
                 } else {
                     Vector3::zero()
                 };
 
                 // Extract texture coordinates if available
-                let tex_coords = if !mesh.texcoords.is_empty() {
-                    Vector2::new(
-                        mesh.texcoords[i * 2],
-                        mesh.texcoords[i * 2 + 1]
-                    )
-                } else {
-                    Vector2::zero()
-                };
 
-                vertices.push(Vertex::new(position, normal, tex_coords));
+                vertices.push(Vertex { position, normal });
             }
-            
+
             indices.extend_from_slice(&mesh.indices);
         }
 

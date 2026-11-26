@@ -15,15 +15,15 @@ impl CollisionSystem {
         min_distance: f32,
     ) -> Vector3 {
         let mut result = position;
-        
+
         for (obj_pos, radius) in objects {
             let dx = position.x - obj_pos.x;
             let dy = position.y - obj_pos.y;
             let dz = position.z - obj_pos.z;
-            let dist = (dx*dx + dy*dy + dz*dz).sqrt();
-            
+            let dist = (dx * dx + dy * dy + dz * dz).sqrt();
+
             let safe_dist = radius + min_distance;
-            
+
             if dist < safe_dist && dist > 0.001 {
                 // Push camera out to safe distance
                 let factor = safe_dist / dist;
@@ -32,19 +32,26 @@ impl CollisionSystem {
                 result.z = obj_pos.z + dz * factor;
             }
         }
-        
+
         result
     }
-    
-    /// Check if moving from old_pos to new_pos would pass through any object
-    pub fn check_path(
-        old_pos: Vector3,
-        new_pos: Vector3,
-        objects: &[(Vector3, f32)],
-        min_distance: f32,
-    ) -> Vector3 {
-        // Simple approach: check the new position
-        // Could be enhanced with ray-sphere intersection for fast movement
-        CollisionSystem::check_and_resolve(new_pos, objects, min_distance)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn a_camera_inside_a_planet_is_pushed_to_the_safe_distance() {
+        let planets = [(Vector3::new(10.0, 0.0, 0.0), 2.0)];
+        let pos = CollisionSystem::check_and_resolve(Vector3::new(11.0, 0.0, 0.0), &planets, 0.5);
+        assert!((pos - Vector3::new(12.5, 0.0, 0.0)).length() < 1e-5, "{pos:?}");
+    }
+
+    #[test]
+    fn a_camera_far_away_is_left_alone() {
+        let planets = [(Vector3::new(10.0, 0.0, 0.0), 2.0)];
+        let start = Vector3::new(0.0, 5.0, 0.0);
+        assert_eq!(CollisionSystem::check_and_resolve(start, &planets, 0.5), start);
     }
 }
