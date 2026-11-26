@@ -90,8 +90,7 @@ impl SolarSystem {
     pub fn update(&mut self, delta_time: f32) {
         let len = self.objects.len();
         // Update rotations
-        for i in 0..len {
-            let obj = &mut self.objects[i];
+        for obj in &mut self.objects {
             // Si es planeta, rota sobre su eje Y
             if obj.object_type == CelestialType::Planet {
                 obj.rotation.y += 1.0 * delta_time; // Puedes ajustar la velocidad aquí
