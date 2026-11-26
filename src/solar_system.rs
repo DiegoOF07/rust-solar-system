@@ -1,8 +1,8 @@
 // solar_system.rs
 // Solar system scene with multiple celestial objects
 
-use raylib::prelude::*;
 use crate::shader_system::ShaderType;
+use raylib::prelude::*;
 use std::f32::consts::PI;
 
 /// Celestial object types
@@ -10,7 +10,6 @@ use std::f32::consts::PI;
 pub enum CelestialType {
     Star,
     Planet,
-    Moon,
 }
 
 /// Represents a celestial object
@@ -44,7 +43,7 @@ impl CelestialObject {
             parent_index: None,
         }
     }
-    
+
     /// Create a new planet
     pub fn planet(
         parent_idx: usize,
@@ -66,38 +65,6 @@ impl CelestialObject {
             parent_index: Some(parent_idx),
         }
     }
-    
-    /// Create a new moon
-    pub fn moon(
-        parent_idx: usize,
-        orbit_radius: f32,
-        orbit_speed: f32,
-        scale: f32,
-        shader: ShaderType,
-    ) -> Self {
-        let mut moon = Self::planet(parent_idx, orbit_radius, orbit_speed, scale, shader);
-        moon.object_type = CelestialType::Moon;
-        moon.rotation_speed = Vector3::new(0.0, 0.05, 0.0);
-        moon.orbit_angle = 0.0;
-        moon.orbit_speed *= 2.0; // Las lunas orbitan más rápido que los planetas
-        moon
-    }
-    
-    /// Update object state
-    pub fn update(&mut self, delta_time: f32, parent_pos: Option<Vector3>) {
-        // Update rotation
-        self.rotation.x += self.rotation_speed.x * delta_time;
-        self.rotation.y += self.rotation_speed.y * delta_time;
-        self.rotation.z += self.rotation_speed.z * delta_time;
-        
-        // Update orbital position if has parent
-        if let Some(center) = parent_pos {
-            self.orbit_angle += self.orbit_speed * delta_time;
-            self.position.x = center.x + self.orbit_radius * self.orbit_angle.cos();
-            self.position.z = center.z + self.orbit_radius * self.orbit_angle.sin();
-            self.position.y = center.y;
-        }
-    }
 }
 
 /// Solar system container
@@ -112,19 +79,18 @@ impl SolarSystem {
             objects: Vec::new(),
         }
     }
-    
+
     /// Add an object and return its index
     pub fn add(&mut self, object: CelestialObject) -> usize {
         self.objects.push(object);
         self.objects.len() - 1
     }
-    
+
     /// Update all objects
     pub fn update(&mut self, delta_time: f32) {
         let len = self.objects.len();
         // Update rotations
-        for i in 0..len {
-            let obj = &mut self.objects[i];
+        for obj in &mut self.objects {
             // Si es planeta, rota sobre su eje Y
             if obj.object_type == CelestialType::Planet {
                 obj.rotation.y += 1.0 * delta_time; // Puedes ajustar la velocidad aquí
@@ -138,11 +104,11 @@ impl SolarSystem {
             if let Some(parent_idx) = self.objects[i].parent_index {
                 let parent_pos = self.objects[parent_idx].position;
                 let obj = &mut self.objects[i];
-                
+
                 // Aplicar ley de Kepler: velocidad más lenta mientras más lejos
                 // v = orbit_speed / sqrt(orbit_radius)
                 let adjusted_speed = obj.orbit_speed / obj.orbit_radius.sqrt();
-                
+
                 obj.orbit_angle += adjusted_speed * 1.0 * delta_time;
                 obj.position.x = parent_pos.x + obj.orbit_radius * obj.orbit_angle.cos();
                 obj.position.z = parent_pos.z + obj.orbit_radius * obj.orbit_angle.sin();
@@ -150,86 +116,86 @@ impl SolarSystem {
             }
         }
     }
-    
+
     /// Create a basic solar system preset
     pub fn create_basic_system() -> Self {
         let mut system = SolarSystem::new();
-        
+
         // Central star (Sun)
         let sun_idx = system.add(CelestialObject::star(4.0));
-        
+
         // Inner rocky planet (Mercury-like)
         system.add(CelestialObject::planet(
             sun_idx,
             8.0,
             0.08,
             0.4,
-            ShaderType::Rocky
+            ShaderType::Rocky,
         ));
-        
+
         // Second planet (Venus-like - lava world)
         system.add(CelestialObject::planet(
             sun_idx,
             12.0,
             0.06,
             0.65,
-            ShaderType::Lava
+            ShaderType::Lava,
         ));
-        
-        // Earth-like planet with moon
+
+        // Planeta tipo Tierra
         system.add(CelestialObject::planet(
             sun_idx,
             17.0,
             0.05,
             1.0,
-            ShaderType::CloudPlanet
+            ShaderType::CloudPlanet,
         ));
-        
+
         // Ocean planet - Mundo acuático
         system.add(CelestialObject::planet(
             sun_idx,
             20.5,
             0.045,
             0.9,
-            ShaderType::Ocean
+            ShaderType::Ocean,
         ));
-        
+
         // Gas giant (Jupiter-like)
         system.add(CelestialObject::planet(
             sun_idx,
             27.0,
             0.03,
             1.5,
-            ShaderType::GasGiant
+            ShaderType::GasGiant,
         ));
-        
+
         // Desert planet
         system.add(CelestialObject::planet(
             sun_idx,
             31.0,
             0.025,
             0.7,
-            ShaderType::Desert
+            ShaderType::Desert,
         ));
-        
+
         // Striped gas giant
         system.add(CelestialObject::planet(
             sun_idx,
             37.0,
             0.02,
             1.3,
-            ShaderType::Striped
+            ShaderType::Striped,
         ));
-        
+
         // Outer ice world
         system.add(CelestialObject::planet(
             sun_idx,
             45.0,
             0.015,
             0.8,
-            ShaderType::IceWorld
+            ShaderType::IceWorld,
         ));
-        
+
         system
     }
 }

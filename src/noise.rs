@@ -7,44 +7,8 @@ use raylib::math::Vector3;
 #[inline]
 fn hash(p: Vector3) -> f32 {
     let mut h = p.x * 127.1 + p.y * 311.7 + p.z * 74.7;
-    h = (h.sin() * 43758.5453).fract();
+    h = (h.sin() * 43_758.547).fract();
     h
-}
-
-/// 3D Value noise - simple but effective
-pub fn value_noise(p: Vector3) -> f32 {
-    let i = Vector3::new(p.x.floor(), p.y.floor(), p.z.floor());
-    let f = Vector3::new(p.x.fract(), p.y.fract(), p.z.fract());
-    
-    // Smooth interpolation
-    let u = Vector3::new(
-        f.x * f.x * (3.0 - 2.0 * f.x),
-        f.y * f.y * (3.0 - 2.0 * f.y),
-        f.z * f.z * (3.0 - 2.0 * f.z),
-    );
-
-    // Sample corners of cube
-    let a = hash(Vector3::new(i.x, i.y, i.z));
-    let b = hash(Vector3::new(i.x + 1.0, i.y, i.z));
-    let c = hash(Vector3::new(i.x, i.y + 1.0, i.z));
-    let d = hash(Vector3::new(i.x + 1.0, i.y + 1.0, i.z));
-    let e = hash(Vector3::new(i.x, i.y, i.z + 1.0));
-    let f_val = hash(Vector3::new(i.x + 1.0, i.y, i.z + 1.0));
-    let g = hash(Vector3::new(i.x, i.y + 1.0, i.z + 1.0));
-    let h_val = hash(Vector3::new(i.x + 1.0, i.y + 1.0, i.z + 1.0));
-
-    // Trilinear interpolation
-    let k0 = a;
-    let k1 = b - a;
-    let k2 = c - a;
-    let k3 = e - a;
-    let k4 = a - b - c + d;
-    let k5 = a - c - e + g;
-    let k6 = a - b - e + f_val;
-    let k7 = -a + b + c - d + e - f_val - g + h_val;
-
-    k0 + k1 * u.x + k2 * u.y + k3 * u.z + k4 * u.x * u.y 
-       + k5 * u.y * u.z + k6 * u.z * u.x + k7 * u.x * u.y * u.z
 }
 
 /// Simplex noise gradient function
@@ -52,7 +16,13 @@ pub fn value_noise(p: Vector3) -> f32 {
 fn grad(hash: i32, x: f32, y: f32, z: f32) -> f32 {
     let h = hash & 15;
     let u = if h < 8 { x } else { y };
-    let v = if h < 4 { y } else if h == 12 || h == 14 { x } else { z };
+    let v = if h < 4 {
+        y
+    } else if h == 12 || h == 14 {
+        x
+    } else {
+        z
+    };
     (if h & 1 == 0 { u } else { -u }) + (if h & 2 == 0 { v } else { -v })
 }
 
@@ -138,37 +108,23 @@ pub fn simplex_noise(p: Vector3) -> f32 {
     32.0 * n
 }
 
-/// Fractal Brownian Motion (fBm) using simplex noise
-pub fn fbm_simplex(p: Vector3, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
-    let mut value = 0.0;
-    let mut amplitude = 1.0;
-    let mut frequency = 1.0;
-
-    for _ in 0..octaves {
-        value += amplitude * simplex_noise(Vector3::new(
-            p.x * frequency,
-            p.y * frequency,
-            p.z * frequency,
-        ));
-        frequency *= lacunarity;
-        amplitude *= gain;
-    }
-
-    value
-}
-
 /// Fractal Brownian Motion (fBm) - layered noise for detail
 #[inline]
 pub fn fbm(p: Vector3, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
     // force a small number of octaves (max 4)
-    let oct = octaves.min(4).max(1);
+    let oct = octaves.clamp(1, 4);
     let mut value = 0.0;
     let mut amplitude = 1.0;
     let mut frequency = 1.0;
 
     // Use simplex_noise but with fewer octaves
     for _ in 0..oct {
-        value += amplitude * simplex_noise(Vector3::new(p.x * frequency, p.y * frequency, p.z * frequency));
+        value += amplitude
+            * simplex_noise(Vector3::new(
+                p.x * frequency,
+                p.y * frequency,
+                p.z * frequency,
+            ));
         frequency *= lacunarity;
         amplitude *= gain;
     }
@@ -180,7 +136,7 @@ pub fn fbm(p: Vector3, octaves: i32, lacunarity: f32, gain: f32) -> f32 {
 /// Turbulence - absolute values create sharp features
 #[inline]
 pub fn turbulence(p: Vector3, octaves: i32) -> f32 {
-    fbm(p, octaves.min(4).max(1), 2.0, 0.5).abs()
+    fbm(p, octaves.clamp(1, 4), 2.0, 0.5).abs()
 }
 
 /// Voronoi/cellular noise - creates cell-like patterns
@@ -190,48 +146,40 @@ pub fn voronoi(p: Vector3, scale: f32) -> f32 {
     let scaled = Vector3::new(p.x * scale, p.y * scale, p.z * scale);
     let cell = Vector3::new(scaled.x.floor(), scaled.y.floor(), scaled.z.floor());
 
-    let center = Vector3::new(cell.x + hash(cell), cell.y + hash(Vector3::new(cell.y, cell.x, cell.z)), cell.z + hash(Vector3::new(cell.z, cell.y, cell.x)));
+    let center = Vector3::new(
+        cell.x + hash(cell),
+        cell.y + hash(Vector3::new(cell.y, cell.x, cell.z)),
+        cell.z + hash(Vector3::new(cell.z, cell.y, cell.x)),
+    );
 
-    let sample1 = Vector3::new(cell.x + 0.6 + hash(Vector3::new(cell.x+1.0, cell.y, cell.z)), cell.y + 0.2 + hash(Vector3::new(cell.y+1.0, cell.x, cell.z)), cell.z + 0.8 + hash(Vector3::new(cell.z+1.0, cell.y, cell.x)));
-    let sample2 = Vector3::new(cell.x - 0.4 + hash(Vector3::new(cell.x-1.0, cell.y, cell.z)), cell.y + 0.3 + hash(Vector3::new(cell.y-1.0, cell.x, cell.z)), cell.z - 0.6 + hash(Vector3::new(cell.z-1.0, cell.y, cell.x)));
+    let sample1 = Vector3::new(
+        cell.x + 0.6 + hash(Vector3::new(cell.x + 1.0, cell.y, cell.z)),
+        cell.y + 0.2 + hash(Vector3::new(cell.y + 1.0, cell.x, cell.z)),
+        cell.z + 0.8 + hash(Vector3::new(cell.z + 1.0, cell.y, cell.x)),
+    );
+    let sample2 = Vector3::new(
+        cell.x - 0.4 + hash(Vector3::new(cell.x - 1.0, cell.y, cell.z)),
+        cell.y + 0.3 + hash(Vector3::new(cell.y - 1.0, cell.x, cell.z)),
+        cell.z - 0.6 + hash(Vector3::new(cell.z - 1.0, cell.y, cell.x)),
+    );
 
     let dx = scaled.x - center.x;
     let dy = scaled.y - center.y;
     let dz = scaled.z - center.z;
-    let d0 = (dx*dx + dy*dy + dz*dz).sqrt();
+    let d0 = (dx * dx + dy * dy + dz * dz).sqrt();
 
     let dx1 = scaled.x - sample1.x;
     let dy1 = scaled.y - sample1.y;
     let dz1 = scaled.z - sample1.z;
-    let d1 = (dx1*dx1 + dy1*dy1 + dz1*dz1).sqrt();
+    let d1 = (dx1 * dx1 + dy1 * dy1 + dz1 * dz1).sqrt();
 
     let dx2 = scaled.x - sample2.x;
     let dy2 = scaled.y - sample2.y;
     let dz2 = scaled.z - sample2.z;
-    let d2 = (dx2*dx2 + dy2*dy2 + dz2*dz2).sqrt();
+    let d2 = (dx2 * dx2 + dy2 * dy2 + dz2 * dz2).sqrt();
 
     // Return min dist like a voronoi distance but cheaper
     d0.min(d1.min(d2))
-}
-
-/// Ridged noise - inverted absolute noise for mountain ridges
-pub fn ridged_noise(p: Vector3, octaves: i32) -> f32 {
-    let mut value = 0.0;
-    let mut amplitude = 1.0;
-    let mut frequency = 1.0;
-
-    for _ in 0..octaves {
-        let n = simplex_noise(Vector3::new(
-            p.x * frequency,
-            p.y * frequency,
-            p.z * frequency,
-        ));
-        value += (1.0 - n.abs()) * amplitude;
-        frequency *= 2.0;
-        amplitude *= 0.5;
-    }
-
-    value
 }
 
 /// Warp/domain distortion - creates swirling patterns
@@ -251,4 +199,36 @@ pub fn warp_noise(p: Vector3, amount: f32) -> f32 {
 
     // use simplex_noise once on warped point (not multiple octaves)
     simplex_noise(warped) * 0.7
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn samples() -> impl Iterator<Item = Vector3> {
+        (0..500).map(|i| {
+            let t = i as f32 * 0.37;
+            Vector3::new(t.sin() * 3.0, t * 0.11, (t * 1.3).cos() * 2.0)
+        })
+    }
+
+    #[test]
+    fn the_noise_is_deterministic() {
+        for p in samples() {
+            assert_eq!(fbm(p, 4, 2.0, 0.5), fbm(p, 4, 2.0, 0.5));
+            assert_eq!(voronoi(p, 3.0), voronoi(p, 3.0));
+        }
+    }
+
+    #[test]
+    fn the_noise_stays_in_a_range_the_shaders_can_mix() {
+        for p in samples() {
+            let f = fbm(p, 4, 2.0, 0.5);
+            assert!(f.is_finite() && f.abs() <= 1.0, "fbm({p:?}) = {f}");
+            let t = turbulence(p, 3);
+            assert!((0.0..=1.0).contains(&t), "turbulence({p:?}) = {t}");
+            let v = voronoi(p, 3.0);
+            assert!(v.is_finite() && v >= 0.0, "voronoi({p:?}) = {v}");
+        }
+    }
 }

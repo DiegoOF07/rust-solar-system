@@ -1,10 +1,10 @@
 // shader_system.rs
 // Optimized modular shader system
 
-use raylib::prelude::*;
-use crate::fragment::Fragment;
 use crate::Uniforms;
+use crate::fragment::Fragment;
 use crate::noise::*;
+use raylib::prelude::*;
 
 #[derive(Clone, Copy, PartialEq, Debug)]
 pub enum ShaderType {
@@ -14,7 +14,6 @@ pub enum ShaderType {
     Lava,
     IceWorld,
     CloudPlanet,
-    Metallic,
     Ocean,
     Desert,
     Striped,
@@ -43,20 +42,45 @@ pub fn star_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     let time = uniforms.time * 0.8; // Aumentado de 0.3 para movimiento más rápido
 
     // Múltiples capas de ruido para más movimiento
-    let surface = turbulence(Vector3::new(pos.x * 2.5, pos.y * 2.5 + time * 1.2, pos.z * 2.5), 4);
-    let flares = warp_noise(Vector3::new(pos.x * 4.0 + time * 1.5, pos.y * 4.0 + time, pos.z * 4.0), 0.8);
-    
+    let surface = turbulence(
+        Vector3::new(pos.x * 2.5, pos.y * 2.5 + time * 1.2, pos.z * 2.5),
+        4,
+    );
+    let flares = warp_noise(
+        Vector3::new(pos.x * 4.0 + time * 1.5, pos.y * 4.0 + time, pos.z * 4.0),
+        0.8,
+    );
+
     // Segundo nivel de flares para más dinamismo
-    let secondary_flares = warp_noise(Vector3::new(pos.x * 2.0 + time * 0.7, pos.y * 2.0 - time * 0.5, pos.z * 2.0), 0.5);
+    let secondary_flares = warp_noise(
+        Vector3::new(
+            pos.x * 2.0 + time * 0.7,
+            pos.y * 2.0 - time * 0.5,
+            pos.z * 2.0,
+        ),
+        0.5,
+    );
 
     // Pulsos más intensos y diversos
-    let pulse1 = (simplex_noise(Vector3::new(pos.x * 1.5, pos.y * 1.5, pos.z * 1.5 + time * 3.0)) * 0.5 + 0.5) * 0.8;
+    let pulse1 = (simplex_noise(Vector3::new(
+        pos.x * 1.5,
+        pos.y * 1.5,
+        pos.z * 1.5 + time * 3.0,
+    )) * 0.5
+        + 0.5)
+        * 0.8;
     let pulse2 = ((time * 1.5).sin() * 0.5 + 0.5) * 0.6; // Pulso adicional sinusoidal
     let combined_pulse = (pulse1 + pulse2) * 0.5;
 
     // Manchas solares que se mueven más rápido
-    let spots1 = voronoi(Vector3::new(pos.x + time * 0.3, pos.y + time * 0.2, pos.z), 3.5);
-    let spots2 = voronoi(Vector3::new(pos.x - time * 0.4, pos.y, pos.z + time * 0.25), 4.5);
+    let spots1 = voronoi(
+        Vector3::new(pos.x + time * 0.3, pos.y + time * 0.2, pos.z),
+        3.5,
+    );
+    let spots2 = voronoi(
+        Vector3::new(pos.x - time * 0.4, pos.y, pos.z + time * 0.25),
+        4.5,
+    );
     let spot_mask = smoothstep(0.15, 0.3, spots1) * smoothstep(0.2, 0.35, spots2);
 
     // Colores más vibrantes y variados
@@ -74,18 +98,21 @@ pub fn star_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     // Flares más intensos
     let flare_intensity = smoothstep(0.3, 0.75, flares.abs());
     let secondary_intensity = smoothstep(0.4, 0.8, secondary_flares.abs());
-    color = mix_color(color, core_white, flare_intensity * 0.5 + secondary_intensity * 0.3);
+    color = mix_color(
+        color,
+        core_white,
+        flare_intensity * 0.5 + secondary_intensity * 0.3,
+    );
 
     // Manchas solares con más contraste
     color = mix_color(color, dark_spot, (1.0 - spot_mask) * 0.85);
-    
+
     // Brillo e iluminación intensificada
     let brightness = 1.6 + combined_pulse * 0.3; // Más brillante y con más variación
     color = color * brightness + Vector3::new(0.25, 0.15, 0.02) * combined_pulse;
 
     // Aplicar iluminación base
-    let lit_color = color * (fragment.color * 0.4 + Vector3::new(0.6, 0.6, 0.6));
-    lit_color
+    color * (fragment.color * 0.4 + Vector3::new(0.6, 0.6, 0.6))
 }
 
 /// Rocky shader - OPTIMIZADO
@@ -94,7 +121,12 @@ pub fn rocky_shader(fragment: &Fragment, _uniforms: &Uniforms) -> Vector3 {
     let base_color = fragment.color;
 
     // Solo 2 octavas
-    let terrain = fbm(Vector3::new(pos.x * 3.0, pos.y * 3.0, pos.z * 3.0), 2, 2.0, 0.5);
+    let terrain = fbm(
+        Vector3::new(pos.x * 3.0, pos.y * 3.0, pos.z * 3.0),
+        2,
+        2.0,
+        0.5,
+    );
 
     let dark_rock = Vector3::new(0.25, 0.15, 0.10);
     let mid_rock = Vector3::new(0.55, 0.35, 0.22);
@@ -141,7 +173,7 @@ pub fn lava_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
 
     let mut color = mix_color(dark_crust, hot_lava, flow * 0.5 + 0.5);
     color = mix_color(color, bright_lava, smoothstep(0.3, 0.7, flow));
-    color = color + Vector3::new(pulse * 0.2, pulse * 0.05, 0.0);
+    color += Vector3::new(pulse * 0.2, pulse * 0.05, 0.0);
 
     color * (base_color * 0.5 + Vector3::new(0.5, 0.5, 0.5))
 }
@@ -169,20 +201,25 @@ pub fn cloud_planet_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 
     let pos = fragment.world_position;
     let base_color = fragment.color;
     let time = uniforms.time * 0.1;
-    
+
     // Reducido octavas
-    let land_mask = fbm(Vector3::new(pos.x * 2.0, pos.y * 2.0, pos.z * 2.0), 3, 2.0, 0.5);
+    let land_mask = fbm(
+        Vector3::new(pos.x * 2.0, pos.y * 2.0, pos.z * 2.0),
+        3,
+        2.0,
+        0.5,
+    );
     let clouds = simplex_noise(Vector3::new(pos.x * 4.0 + time, pos.y * 4.0, pos.z * 4.0));
-    
+
     let ocean = Vector3::new(0.1, 0.3, 0.6);
     let land = Vector3::new(0.3, 0.45, 0.25);
     let cloud_color = Vector3::new(1.0, 1.0, 1.0);
-    
+
     let mut color = if land_mask > 0.0 { land } else { ocean };
-    
+
     let cloud_mask = smoothstep(0.2, 0.5, clouds);
     color = mix_color(color, cloud_color, cloud_mask * 0.6);
-    
+
     apply_lighting(color, base_color)
 }
 
@@ -191,21 +228,28 @@ pub fn ocean_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     let pos = fragment.world_position;
     let base_color = fragment.color;
     let time = uniforms.time * 0.15;
-    
-    let waves = simplex_noise(Vector3::new(pos.x * 3.0 + time, pos.y * 2.0, pos.z * 3.0 + time * 0.5));
-    let storm = voronoi(Vector3::new(pos.x * 2.0 - time * 0.3, pos.y * 2.0, pos.z * 2.0), 4.0);
-    
+
+    let waves = simplex_noise(Vector3::new(
+        pos.x * 3.0 + time,
+        pos.y * 2.0,
+        pos.z * 3.0 + time * 0.5,
+    ));
+    let storm = voronoi(
+        Vector3::new(pos.x * 2.0 - time * 0.3, pos.y * 2.0, pos.z * 2.0),
+        4.0,
+    );
+
     let deep_ocean = Vector3::new(0.05, 0.15, 0.4);
     let mid_ocean = Vector3::new(0.1, 0.25, 0.6);
     let bright_ocean = Vector3::new(0.2, 0.4, 0.8);
     let storm_color = Vector3::new(0.3, 0.2, 0.5);
-    
+
     let mut color = mix_color(deep_ocean, mid_ocean, waves * 0.5 + 0.5);
     color = mix_color(color, bright_ocean, smoothstep(0.3, 0.7, waves));
-    
+
     let storm_mask = smoothstep(0.2, 0.4, storm);
     color = mix_color(color, storm_color, storm_mask * 0.4);
-    
+
     apply_lighting(color, base_color)
 }
 
@@ -214,21 +258,29 @@ pub fn desert_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     let pos = fragment.world_position;
     let base_color = fragment.color;
     let time = uniforms.time * 0.08;
-    
-    let sand_dunes = fbm(Vector3::new(pos.x * 2.5, pos.y * 1.5, pos.z * 2.5), 2, 2.0, 0.5);
-    let dust_storm = warp_noise(Vector3::new(pos.x * 1.5 + time, pos.y * 1.5 + time * 0.5, pos.z * 1.5), 0.6);
-    
+
+    let sand_dunes = fbm(
+        Vector3::new(pos.x * 2.5, pos.y * 1.5, pos.z * 2.5),
+        2,
+        2.0,
+        0.5,
+    );
+    let dust_storm = warp_noise(
+        Vector3::new(pos.x * 1.5 + time, pos.y * 1.5 + time * 0.5, pos.z * 1.5),
+        0.6,
+    );
+
     let golden_sand = Vector3::new(1.0, 0.85, 0.3);
     let tan_sand = Vector3::new(0.9, 0.7, 0.3);
     let red_sand = Vector3::new(0.8, 0.4, 0.15);
     let dust_color = Vector3::new(0.95, 0.85, 0.65);
-    
+
     let mut color = mix_color(tan_sand, golden_sand, sand_dunes * 0.5 + 0.5);
     color = mix_color(color, red_sand, sand_dunes.abs() * 0.4);
-    
+
     let dust_mask = smoothstep(0.2, 0.6, dust_storm.abs());
     color = mix_color(color, dust_color, dust_mask * 0.3);
-    
+
     color * (base_color * 0.5 + Vector3::new(0.5, 0.5, 0.5))
 }
 
@@ -237,58 +289,72 @@ pub fn striped_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     let pos = fragment.world_position;
     let base_color = fragment.color;
     let time = uniforms.time * 0.04;
-    
+
     // Bandas horizontales más pronunciadas
     let bands = (pos.y * 15.0 + time * 0.5).sin() * 0.5 + 0.5;
-    let turbulence = simplex_noise(Vector3::new(pos.x * 3.0 + time, pos.y * 3.0, pos.z * 3.0 + time * 0.3));
-    let spots = voronoi(Vector3::new(pos.x * 2.0, pos.y * 2.0 + time * 0.2, pos.z * 2.0), 3.5);
-    
+    let turbulence = simplex_noise(Vector3::new(
+        pos.x * 3.0 + time,
+        pos.y * 3.0,
+        pos.z * 3.0 + time * 0.3,
+    ));
+    let spots = voronoi(
+        Vector3::new(pos.x * 2.0, pos.y * 2.0 + time * 0.2, pos.z * 2.0),
+        3.5,
+    );
+
     // Colores vibrantes y variados
-    let color1 = Vector3::new(0.9, 0.7, 0.3);  // Amarillo-dorado
-    let color2 = Vector3::new(0.8, 0.4, 0.2);  // Naranja-rojo
+    let color1 = Vector3::new(0.9, 0.7, 0.3); // Amarillo-dorado
+    let color2 = Vector3::new(0.8, 0.4, 0.2); // Naranja-rojo
     let color3 = Vector3::new(0.6, 0.3, 0.15); // Marrón oscuro
-    let color4 = Vector3::new(0.4, 0.5, 0.8);  // Azul
+    let color4 = Vector3::new(0.4, 0.5, 0.8); // Azul
     let spot_color = Vector3::new(0.3, 0.2, 0.1);
-    
+
     let mut color = mix_color(color1, color2, bands);
     color = mix_color(color, color3, turbulence.abs() * 0.4);
     color = mix_color(color, color4, (bands - 0.5).abs());
-    
+
     let spot_mask = smoothstep(0.2, 0.35, spots);
     color = mix_color(color, spot_color, (1.0 - spot_mask) * 0.6);
-    
+
     apply_lighting(color, base_color)
 }
 
-/// Metallic shader - Para la nave, patrón metálico con reflejos
+/// Shader de la nave: patrón metálico con reflejos
 pub fn metallic_shader(fragment: &Fragment, uniforms: &Uniforms) -> Vector3 {
     let pos = fragment.world_position;
     let base_color = fragment.color;
     let time = uniforms.time * 0.2;
-    
+
     // Patrón metálico con líneas y reflejos
     let metallic_pattern = simplex_noise(Vector3::new(pos.x * 5.0, pos.y * 5.0, pos.z * 5.0));
     let panel_lines = (pos.x * 8.0).sin() * (pos.y * 6.0).cos() * 0.5 + 0.5;
-    let reflection = warp_noise(Vector3::new(pos.x * 2.0 + time, pos.y * 2.0, pos.z * 2.0), 0.7);
-    
+    let reflection = warp_noise(
+        Vector3::new(pos.x * 2.0 + time, pos.y * 2.0, pos.z * 2.0),
+        0.7,
+    );
+
     // Colores metálicos
     let dark_metal = Vector3::new(0.2, 0.2, 0.25);
     let bright_metal = Vector3::new(0.7, 0.75, 0.8);
     let accent_color = Vector3::new(0.2, 0.6, 0.95); // Azul cibernetico
-    
+
     let mut color = mix_color(dark_metal, bright_metal, metallic_pattern * 0.5 + 0.5);
     color = mix_color(color, accent_color, panel_lines * 0.3);
-    
+
     // Añadir reflejos dinámicos
     let reflection_intensity = smoothstep(0.3, 0.7, reflection.abs());
-    color = color + Vector3::new(0.3, 0.3, 0.35) * reflection_intensity * 0.5;
-    
+    color += Vector3::new(0.3, 0.3, 0.35) * reflection_intensity * 0.5;
+
     color * (base_color + Vector3::new(0.2, 0.2, 0.2))
 }
 
 #[inline(always)]
 fn apply_lighting(color: Vector3, base_color: Vector3) -> Vector3 {
-    let lit = Vector3::new(color.x * base_color.x, color.y * base_color.y, color.z * base_color.z);
+    let lit = Vector3::new(
+        color.x * base_color.x,
+        color.y * base_color.y,
+        color.z * base_color.z,
+    );
     normalize_intensity(lit, base_color, 0.0)
 }
 
@@ -296,7 +362,11 @@ fn apply_lighting(color: Vector3, base_color: Vector3) -> Vector3 {
 fn normalize_intensity(lit_color: Vector3, base_color: Vector3, boost: f32) -> Vector3 {
     let orig = (base_color.x + base_color.y + base_color.z) / 3.0 + boost;
     let mixed = (lit_color.x + lit_color.y + lit_color.z) / 3.0;
-    if mixed > 0.001 { lit_color * (orig / mixed) } else { lit_color }
+    if mixed > 0.001 {
+        lit_color * (orig / mixed)
+    } else {
+        lit_color
+    }
 }
 
 pub fn apply_shader(fragment: &Fragment, uniforms: &Uniforms, shader_type: ShaderType) -> Vector3 {
@@ -310,7 +380,6 @@ pub fn apply_shader(fragment: &Fragment, uniforms: &Uniforms, shader_type: Shade
         ShaderType::Ocean => ocean_shader(fragment, uniforms),
         ShaderType::Desert => desert_shader(fragment, uniforms),
         ShaderType::Striped => striped_shader(fragment, uniforms),
-        ShaderType::Metallic => metallic_shader(fragment, uniforms),
         ShaderType::Spaceship => metallic_shader(fragment, uniforms),
     }
 }

@@ -14,19 +14,26 @@ pub fn multiply_matrix_vector4(matrix: &Matrix, vector: &Vector4) -> Vector4 {
     )
 }
 
-/// Creates a 4x4 matrix from 16 values in row-major order
-/// Converts to column-major format required by Raylib
-fn new_matrix4(
-    r0c0: f32, r0c1: f32, r0c2: f32, r0c3: f32,
-    r1c0: f32, r1c1: f32, r1c2: f32, r1c3: f32,
-    r2c0: f32, r2c1: f32, r2c2: f32, r2c3: f32,
-    r3c0: f32, r3c1: f32, r3c2: f32, r3c3: f32,
-) -> Matrix {
+/// Crea una matriz a partir de sus filas y la pasa al orden por columnas de Raylib
+fn new_matrix4(rows: [[f32; 4]; 4]) -> Matrix {
+    let [r0, r1, r2, r3] = rows;
     Matrix {
-        m0: r0c0, m1: r1c0, m2: r2c0, m3: r3c0,
-        m4: r0c1, m5: r1c1, m6: r2c1, m7: r3c1,
-        m8: r0c2, m9: r1c2, m10: r2c2, m11: r3c2,
-        m12: r0c3, m13: r1c3, m14: r2c3, m15: r3c3,
+        m0: r0[0],
+        m1: r1[0],
+        m2: r2[0],
+        m3: r3[0],
+        m4: r0[1],
+        m5: r1[1],
+        m6: r2[1],
+        m7: r3[1],
+        m8: r0[2],
+        m9: r1[2],
+        m10: r2[2],
+        m11: r3[2],
+        m12: r0[3],
+        m13: r1[3],
+        m14: r2[3],
+        m15: r3[3],
     }
 }
 
@@ -38,42 +45,42 @@ pub fn create_model_matrix(translation: Vector3, scale: f32, rotation: Vector3) 
     let (sin_z, cos_z) = rotation.z.sin_cos();
 
     // Rotation matrices for each axis
-    let rotation_x = new_matrix4(
-        1.0, 0.0,    0.0,    0.0,
-        0.0, cos_x, -sin_x,  0.0,
-        0.0, sin_x,  cos_x,  0.0,
-        0.0, 0.0,    0.0,    1.0
-    );
+    let rotation_x = new_matrix4([
+        [1.0, 0.0, 0.0, 0.0],
+        [0.0, cos_x, -sin_x, 0.0],
+        [0.0, sin_x, cos_x, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
 
-    let rotation_y = new_matrix4(
-        cos_y,  0.0, sin_y, 0.0,
-        0.0,    1.0, 0.0,   0.0,
-       -sin_y,  0.0, cos_y, 0.0,
-        0.0,    0.0, 0.0,   1.0
-    );
+    let rotation_y = new_matrix4([
+        [cos_y, 0.0, sin_y, 0.0],
+        [0.0, 1.0, 0.0, 0.0],
+        [-sin_y, 0.0, cos_y, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
 
-    let rotation_z = new_matrix4(
-        cos_z, -sin_z, 0.0, 0.0,
-        sin_z,  cos_z, 0.0, 0.0,
-        0.0,    0.0,   1.0, 0.0,
-        0.0,    0.0,   0.0, 1.0
-    );
+    let rotation_z = new_matrix4([
+        [cos_z, -sin_z, 0.0, 0.0],
+        [sin_z, cos_z, 0.0, 0.0],
+        [0.0, 0.0, 1.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
 
     let rotation_matrix = rotation_z * rotation_y * rotation_x;
 
-    let scale_matrix = new_matrix4(
-        scale, 0.0,   0.0,   0.0,
-        0.0,   scale, 0.0,   0.0,
-        0.0,   0.0,   scale, 0.0,
-        0.0,   0.0,   0.0,   1.0
-    );
+    let scale_matrix = new_matrix4([
+        [scale, 0.0, 0.0, 0.0],
+        [0.0, scale, 0.0, 0.0],
+        [0.0, 0.0, scale, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
 
-    let translation_matrix = new_matrix4(
-        1.0, 0.0, 0.0, translation.x,
-        0.0, 1.0, 0.0, translation.y,
-        0.0, 0.0, 1.0, translation.z,
-        0.0, 0.0, 0.0, 1.0
-    );
+    let translation_matrix = new_matrix4([
+        [1.0, 0.0, 0.0, translation.x],
+        [0.0, 1.0, 0.0, translation.y],
+        [0.0, 0.0, 1.0, translation.z],
+        [0.0, 0.0, 0.0, 1.0],
+    ]);
 
     scale_matrix * translation_matrix * rotation_matrix
 }
@@ -82,14 +89,11 @@ pub fn create_model_matrix(translation: Vector3, scale: f32, rotation: Vector3) 
 /// Transforms world space to camera space
 pub fn create_view_matrix(eye: Vector3, target: Vector3, up: Vector3) -> Matrix {
     // Calculate camera basis vectors
-    let mut forward = Vector3::new(
-        target.x - eye.x,
-        target.y - eye.y,
-        target.z - eye.z,
-    );
-    
+    let mut forward = Vector3::new(target.x - eye.x, target.y - eye.y, target.z - eye.z);
+
     // Normalize forward vector
-    let forward_length = (forward.x * forward.x + forward.y * forward.y + forward.z * forward.z).sqrt();
+    let forward_length =
+        (forward.x * forward.x + forward.y * forward.y + forward.z * forward.z).sqrt();
     forward.x /= forward_length;
     forward.y /= forward_length;
     forward.z /= forward_length;
@@ -100,7 +104,7 @@ pub fn create_view_matrix(eye: Vector3, target: Vector3, up: Vector3) -> Matrix 
         forward.z * up.x - forward.x * up.z,
         forward.x * up.y - forward.y * up.x,
     );
-    
+
     let right_length = (right.x * right.x + right.y * right.y + right.z * right.z).sqrt();
     right.x /= right_length;
     right.y /= right_length;
@@ -114,17 +118,32 @@ pub fn create_view_matrix(eye: Vector3, target: Vector3, up: Vector3) -> Matrix 
     );
 
     // Construct view matrix (inverse of camera transformation)
-    new_matrix4(
-        right.x, right.y, right.z, -(right.x * eye.x + right.y * eye.y + right.z * eye.z),
-        actual_up.x, actual_up.y, actual_up.z, -(actual_up.x * eye.x + actual_up.y * eye.y + actual_up.z * eye.z),
-        -forward.x, -forward.y, -forward.z, forward.x * eye.x + forward.y * eye.y + forward.z * eye.z,
-        0.0, 0.0, 0.0, 1.0,
-    )
+    new_matrix4([
+        [
+            right.x,
+            right.y,
+            right.z,
+            -(right.x * eye.x + right.y * eye.y + right.z * eye.z),
+        ],
+        [
+            actual_up.x,
+            actual_up.y,
+            actual_up.z,
+            -(actual_up.x * eye.x + actual_up.y * eye.y + actual_up.z * eye.z),
+        ],
+        [
+            -forward.x,
+            -forward.y,
+            -forward.z,
+            forward.x * eye.x + forward.y * eye.y + forward.z * eye.z,
+        ],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
 }
 
 /// Creates a perspective projection matrix
 /// Transforms camera space to clip space
-/// 
+///
 /// # Parameters
 /// * `fov_y` - Vertical field of view in radians
 /// * `aspect` - Aspect ratio (width / height)
@@ -133,17 +152,22 @@ pub fn create_view_matrix(eye: Vector3, target: Vector3, up: Vector3) -> Matrix 
 pub fn create_projection_matrix(fov_y: f32, aspect: f32, near: f32, far: f32) -> Matrix {
     let tan_half_fov = (fov_y / 2.0).tan();
 
-    new_matrix4(
-        1.0 / (aspect * tan_half_fov), 0.0, 0.0, 0.0,
-        0.0, 1.0 / tan_half_fov, 0.0, 0.0,
-        0.0, 0.0, -(far + near) / (far - near), -(2.0 * far * near) / (far - near),
-        0.0, 0.0, -1.0, 0.0,
-    )
+    new_matrix4([
+        [1.0 / (aspect * tan_half_fov), 0.0, 0.0, 0.0],
+        [0.0, 1.0 / tan_half_fov, 0.0, 0.0],
+        [
+            0.0,
+            0.0,
+            -(far + near) / (far - near),
+            -(2.0 * far * near) / (far - near),
+        ],
+        [0.0, 0.0, -1.0, 0.0],
+    ])
 }
 
 /// Creates a viewport matrix to transform NDC coordinates to screen space
 /// Transforms normalized device coordinates [-1, 1] to pixel coordinates [0, width/height]
-/// 
+///
 /// # Parameters
 /// * `x, y` - Viewport position (typically 0, 0)
 /// * `width, height` - Viewport dimensions in pixels
@@ -151,10 +175,49 @@ pub fn create_viewport_matrix(x: f32, y: f32, width: f32, height: f32) -> Matrix
     let half_width = width / 2.0;
     let half_height = height / 2.0;
 
-    new_matrix4(
-        half_width, 0.0, 0.0, x + half_width,
-        0.0, -half_height, 0.0, y + half_height,
-        0.0, 0.0, 255.0, 0.0,
-        0.0, 0.0, 0.0, 1.0,
-    )
+    new_matrix4([
+        [half_width, 0.0, 0.0, x + half_width],
+        [0.0, -half_height, 0.0, y + half_height],
+        [0.0, 0.0, 255.0, 0.0],
+        [0.0, 0.0, 0.0, 1.0],
+    ])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn apply(m: &Matrix, p: Vector3) -> Vector4 {
+        multiply_matrix_vector4(m, &Vector4::new(p.x, p.y, p.z, 1.0))
+    }
+
+    #[test]
+    fn the_view_matrix_puts_the_camera_at_the_origin_looking_down_minus_z() {
+        let eye = Vector3::new(3.0, 4.0, 5.0);
+        let target = Vector3::new(3.0, 4.0, -5.0);
+        let view = create_view_matrix(eye, target, Vector3::new(0.0, 1.0, 0.0));
+        let at_eye = apply(&view, eye);
+        assert!(at_eye.x.abs() < 1e-5 && at_eye.y.abs() < 1e-5 && at_eye.z.abs() < 1e-5);
+        let at_target = apply(&view, target);
+        assert!((at_target.z + 10.0).abs() < 1e-4, "{at_target:?}");
+    }
+
+    #[test]
+    fn the_projection_maps_near_and_far_to_the_ends_of_the_depth_range() {
+        let proj = create_projection_matrix(std::f32::consts::FRAC_PI_3, 1.5, 0.1, 100.0);
+        let near = apply(&proj, Vector3::new(0.0, 0.0, -0.1));
+        let far = apply(&proj, Vector3::new(0.0, 0.0, -100.0));
+        assert!((near.z / near.w + 1.0).abs() < 1e-4);
+        assert!((far.z / far.w - 1.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn the_model_matrix_scales_then_translates() {
+        let model = create_model_matrix(Vector3::new(10.0, 0.0, 0.0), 2.0, Vector3::zero());
+        let p = apply(&model, Vector3::new(1.0, 0.0, 0.0));
+        assert!(
+            (p.x - 12.0).abs() < 1e-5 && p.y.abs() < 1e-5 && p.z.abs() < 1e-5,
+            "{p:?}"
+        );
+    }
 }

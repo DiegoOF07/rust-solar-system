@@ -2,13 +2,11 @@
 // Orbital camera with keyboard controls and 3D movement
 
 use raylib::prelude::*;
-use crate::matrix::create_view_matrix;
 use std::f32::consts::PI;
 
 pub struct Camera {
     pub eye: Vector3,
     pub target: Vector3,
-    pub up: Vector3,
     pub yaw: f32,
     pub pitch: f32,
     pub distance: f32,
@@ -18,22 +16,21 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(eye: Vector3, target: Vector3, up: Vector3) -> Self {
-        let direction = Vector3::new(
-            eye.x - target.x,
-            eye.y - target.y,
-            eye.z - target.z,
-        );
+    pub fn new(eye: Vector3, target: Vector3) -> Self {
+        let direction = Vector3::new(eye.x - target.x, eye.y - target.y, eye.z - target.z);
 
-        let distance = (direction.x * direction.x 
-            + direction.y * direction.y 
-            + direction.z * direction.z).sqrt();
+        let distance =
+            (direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
+                .sqrt();
         let pitch = (direction.y / distance).asin();
         let yaw = direction.z.atan2(direction.x);
 
         Camera {
-            eye, target, up,
-            yaw, pitch, distance,
+            eye,
+            target,
+            yaw,
+            pitch,
+            distance,
             rotation_speed: 0.05,
             zoom_speed: 0.5,
             pan_speed: 0.1,
@@ -47,26 +44,18 @@ impl Camera {
         self.eye.z = self.target.z + self.distance * self.pitch.cos() * self.yaw.sin();
     }
 
-    pub fn get_view_matrix(&self) -> Matrix {
-        create_view_matrix(self.eye, self.target, self.up)
-    }
-    
     /// Set camera position directly (used by warp system)
     pub fn set_position(&mut self, eye: Vector3, target: Vector3) {
         self.eye = eye;
         self.target = target;
-        
+
         // Recalculate spherical coordinates
-        let direction = Vector3::new(
-            eye.x - target.x,
-            eye.y - target.y,
-            eye.z - target.z,
-        );
-        
-        self.distance = (direction.x * direction.x 
-            + direction.y * direction.y 
-            + direction.z * direction.z).sqrt();
-        
+        let direction = Vector3::new(eye.x - target.x, eye.y - target.y, eye.z - target.z);
+
+        self.distance =
+            (direction.x * direction.x + direction.y * direction.y + direction.z * direction.z)
+                .sqrt();
+
         if self.distance > 0.001 {
             self.pitch = (direction.y / self.distance).asin();
             self.yaw = direction.z.atan2(direction.x);
@@ -105,11 +94,7 @@ impl Camera {
         }
 
         // Panning vectors
-        let forward = Vector3::new(
-            self.target.x - self.eye.x,
-            0.0,
-            self.target.z - self.eye.z,
-        );
+        let forward = Vector3::new(self.target.x - self.eye.x, 0.0, self.target.z - self.eye.z);
         let forward_len = (forward.x * forward.x + forward.z * forward.z).sqrt();
         let forward_norm = if forward_len > 0.0 {
             Vector3::new(forward.x / forward_len, 0.0, forward.z / forward_len)
@@ -140,7 +125,7 @@ impl Camera {
             self.target.y -= self.pan_speed;
             self.update_eye_position();
         }
-        
+
         // Forward/backward movement along view direction
         if window.is_key_down(KeyboardKey::KEY_Z) {
             let move_speed = self.pan_speed * 2.0;
