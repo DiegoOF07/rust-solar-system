@@ -45,13 +45,19 @@ mod tests {
     fn a_camera_inside_a_planet_is_pushed_to_the_safe_distance() {
         let planets = [(Vector3::new(10.0, 0.0, 0.0), 2.0)];
         let pos = CollisionSystem::check_and_resolve(Vector3::new(11.0, 0.0, 0.0), &planets, 0.5);
-        assert!((pos - Vector3::new(12.5, 0.0, 0.0)).length() < 1e-5, "{pos:?}");
+        assert!(
+            (pos - Vector3::new(12.5, 0.0, 0.0)).length() < 1e-5,
+            "{pos:?}"
+        );
     }
 
     #[test]
     fn a_camera_far_away_is_left_alone() {
         let planets = [(Vector3::new(10.0, 0.0, 0.0), 2.0)];
         let start = Vector3::new(0.0, 5.0, 0.0);
-        assert_eq!(CollisionSystem::check_and_resolve(start, &planets, 0.5), start);
+        assert_eq!(
+            CollisionSystem::check_and_resolve(start, &planets, 0.5),
+            start
+        );
     }
 }

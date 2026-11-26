@@ -215,6 +215,9 @@ mod tests {
     fn the_model_matrix_scales_then_translates() {
         let model = create_model_matrix(Vector3::new(10.0, 0.0, 0.0), 2.0, Vector3::zero());
         let p = apply(&model, Vector3::new(1.0, 0.0, 0.0));
-        assert!((p.x - 12.0).abs() < 1e-5 && p.y.abs() < 1e-5 && p.z.abs() < 1e-5, "{p:?}");
+        assert!(
+            (p.x - 12.0).abs() < 1e-5 && p.y.abs() < 1e-5 && p.z.abs() < 1e-5,
+            "{p:?}"
+        );
     }
 }
